@@ -100,6 +100,17 @@
     .action-btn.recommended {
       border: 2px solid #dc2626; /* 推薦按鈕粗紅框 */
     }
+    /* 用完後的灰色禁用狀態 */
+    .action-btn.disabled {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+    .action-btn.disabled:hover {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+    }
 
     .cell-select-group {
       display: flex;
@@ -258,7 +269,7 @@
     <h2>各按鍵詳細機率</h2>
     <p class="note">
       <span style="color:#dc2626;">
-        注意！我不確定一直使用精雕細琢會不會變回0格，這裡預設不會，如果會的話再跟我說
+        注意！我不確定一直使用精雕細琢會不會變回0格，這裡預設不會；另外，在最一開始 0 格時，系統也假設不會停在 0 格或負格，至少會前進到 1 格。如果實際規則不同，再跟我說。
       </span><br>
       以下機率是：在目前狀態下「這一步固定按該按鍵」，之後每一步都依最佳策略選擇，最後拿到各種評級的機率。
     </p>
@@ -343,7 +354,10 @@
       const s = new Set();
       for (const d of deltas) {
         let newPos = pos + d;
-        if (action === "B" && newPos < 1) newPos = 1; // 精雕細琢不會回到 0
+        // 起始在 0 格時，不會停在 0 或負格，至少到 1
+        if (pos === 0 && newPos < 1) newPos = 1;
+        // 精雕細琢在其他情況也不會降到 0
+        if (pos !== 0 && action === "B" && newPos < 1) newPos = 1;
         if (newPos < 1) newPos = 1;
         if (newPos >= 16) newPos = 16; // 爆炸視為 16
         s.add(newPos);
@@ -418,7 +432,11 @@
 
       for (const d of deltas) {
         let newPos = pos + d;
-        if (action === "B" && newPos < 1) newPos = 1;
+        // 起始 0 格：不會停在 0 或負格
+        if (pos === 0 && newPos < 1) newPos = 1;
+        // 不是起始 0 格的情況下，精雕細琢也不會降到 0
+        if (pos !== 0 && action === "B" && newPos < 1) newPos = 1;
+
         const newSteps = steps + 1;
         let nextBLeft = bLeft;
         let nextCLeft = cLeft;
@@ -524,6 +542,25 @@
       return "";
     }
 
+    function updateActionButtonsEnabled() {
+      const btnB = document.getElementById("actionB");
+      const btnC = document.getElementById("actionC");
+
+      if (bLeft <= 0) {
+        btnB.classList.add("disabled");
+        if (selectedAction === "B") selectedAction = null;
+      } else {
+        btnB.classList.remove("disabled");
+      }
+
+      if (cLeft <= 0) {
+        btnC.classList.add("disabled");
+        if (selectedAction === "C") selectedAction = null;
+      } else {
+        btnC.classList.remove("disabled");
+      }
+    }
+
     function updateStatusAndRecommendation() {
       document.getElementById("pos").textContent = pos;
       document.getElementById("steps").textContent = steps;
@@ -545,6 +582,7 @@
           `（格子：${pos}，加工次數：${steps}）`;
         updateProbTable(null);
         submitBtn.disabled = true;
+        updateActionButtonsEnabled();
         return;
       }
 
@@ -574,6 +612,7 @@
       if (!bestRes) {
         recDiv.innerHTML = "無法計算推薦，請檢查狀態。";
         submitBtn.disabled = true;
+        updateActionButtonsEnabled();
         return;
       }
 
@@ -588,6 +627,7 @@
 
       updateProbTable(advice);
       submitBtn.disabled = false;
+      updateActionButtonsEnabled();
     }
 
     function appendLog(text) {
@@ -611,7 +651,7 @@
       cLeft = MAX_C;
       selectedAction = null;
       selectedPos = null;
-      document.querySelectorAll(".action-btn").forEach(btn => btn.classList.remove("selected", "recommended"));
+      document.querySelectorAll(".action-btn").forEach(btn => btn.classList.remove("selected", "recommended", "disabled"));
       document.querySelectorAll(".cell-btn").forEach(btn => btn.classList.remove("selected", "lit"));
       document.getElementById("log").innerHTML = "";
       appendLog("已重置：回到 0 格，0 次加工。");
@@ -659,6 +699,7 @@
     document.querySelectorAll(".action-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         if (pos >= 16 || steps >= MAX_STEPS) return;
+        if (btn.classList.contains("disabled")) return; // 用完不能按
         document.querySelectorAll(".action-btn").forEach(b => b.classList.remove("selected"));
         btn.classList.add("selected");
         selectedAction = btn.dataset.action;
