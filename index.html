@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>調味石推薦助手（實際步驟輸入版）</title>
+  <title>調味石下一步推薦助手（測試版）</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -49,6 +49,10 @@
     .recommendation-box strong {
       font-size: 1.05rem;
     }
+    .recommendation-key {
+      color: #dc2626; /* 紅色推薦文字 */
+      font-weight: 700;
+    }
     .badge {
       display: inline-block;
       padding: 2px 6px;
@@ -85,6 +89,11 @@
       background: white;
       cursor: pointer;
       font-size: 0.9rem;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .action-btn:hover {
+      background: #fef3c7; /* 米色亮燈感 */
+      border-color: #fbbf24;
     }
     .action-btn.selected {
       background: #2563eb;
@@ -92,7 +101,7 @@
       border-color: #2563eb;
     }
     .action-btn.recommended {
-      border: 2px solid #dc2626;
+      border: 2px solid #dc2626; /* 推薦按鈕粗紅框 */
     }
 
     .cell-select-group {
@@ -105,21 +114,22 @@
       width: 32px;
       height: 32px;
       border-radius: 6px;
-      border: 1px solid #d1d5db;
-      background: white;
+      border: 1px solid #eab308;
+      background: #fef9c3; /* 淡黃色底 */
       cursor: pointer;
       font-size: 0.85rem;
       text-align: center;
       line-height: 30px;
       padding: 0;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .cell-btn.lit {
-      background: #60a5fa;
-      color: #fff;
-      border-color: #2563eb;
+      background: #facc15;  /* 亮黃色燈 */
+      color: #78350f;
+      border-color: #eab308;
     }
     .cell-btn.selected {
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5);
+      box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.7);
     }
 
     button.main-submit {
@@ -184,7 +194,7 @@
   </style>
 </head>
 <body>
-  <h1>調味石下一步推薦助手</h1>
+  <h1>調味石下一步推薦助手（測試版）</h1>
   <p class="tip">
     系統幫你算「現在這一步最推薦按哪一種」，你回報實際按了哪個、走到哪一格，讓它持續幫你算下一步。
   </p>
@@ -523,7 +533,7 @@
       const bestRes = advice[advice.bestAction];
 
       recDiv.innerHTML =
-        `推薦按：<strong>${bestLabel}</strong><br/>
+        `推薦按：<span class="recommendation-key">${bestLabel}</span><br/>
          最終預期機率為：` +
         `史詩 ${toPercent(bestRes.pEpic)}、` +
         `超級稀有 ${toPercent(bestRes.pSSR)}、` +
@@ -542,11 +552,11 @@
       log.scrollTop = log.scrollHeight;
     }
 
+    // 只重置「按鍵選擇」，保留格子的亮燈狀態
     function resetSelections() {
       selectedAction = null;
-      selectedPos = null;
       document.querySelectorAll(".action-btn").forEach(btn => btn.classList.remove("selected"));
-      document.querySelectorAll(".cell-btn").forEach(btn => btn.classList.remove("selected", "lit"));
+      // 不清除 selectedPos，也不動格子的 lit / selected 外觀
     }
 
     function resetGame() {
@@ -554,7 +564,10 @@
       steps = 0;
       bLeft = MAX_B;
       cLeft = MAX_C;
-      resetSelections();
+      selectedAction = null;
+      selectedPos = null;
+      document.querySelectorAll(".action-btn").forEach(btn => btn.classList.remove("selected", "recommended"));
+      document.querySelectorAll(".cell-btn").forEach(btn => btn.classList.remove("selected", "lit"));
       document.getElementById("log").innerHTML = "";
       appendLog("已重置：回到 0 格，0 次加工。");
       updateStatusAndRecommendation();
@@ -626,7 +639,8 @@
         `精雕細琢剩 ${bLeft}/${MAX_B}，使用穩定劑剩 ${cLeft}/${MAX_C}`
       );
 
-      resetSelections();
+      resetSelections();    // 只清除按鍵選擇
+      selectedPos = null;   // 邏輯上下一步要重新選，但不清除視覺上的亮燈
       updateStatusAndRecommendation();
     });
 
