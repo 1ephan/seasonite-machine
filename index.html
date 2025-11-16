@@ -95,10 +95,11 @@
       background: #fef3c7; /* 米色亮燈感 */
       border-color: #fbbf24;
     }
+    /* 按下去（selected）顏色跟 hover 一樣米色 */
     .action-btn.selected {
-      background: #2563eb;
-      color: white;
-      border-color: #2563eb;
+      background: #fef3c7;
+      border-color: #fbbf24;
+      color: inherit;
     }
     .action-btn.recommended {
       border: 2px solid #dc2626; /* 推薦按鈕粗紅框 */
@@ -114,7 +115,7 @@
       width: 32px;
       height: 32px;
       border-radius: 6px;
-      border: 1px solid #eab308;
+      border: 1px solid #e5e7eb; /* 基本框灰色 */
       background: #fef9c3; /* 淡黃色底 */
       cursor: pointer;
       font-size: 0.85rem;
@@ -123,10 +124,18 @@
       padding: 0;
       transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
+    /* 特殊格子的框顏色 */
+    .cell-0  { border-color: #111827; }  /* 黑色 */
+    .cell-10,
+    .cell-11,
+    .cell-12 { border-color: #8b5cf6; }  /* 紫色 */
+    .cell-15 { border-color: #dc2626; }  /* 紅色 */
+    .cell-16 { border-color: #9ca3af; }  /* 灰色 */
+
     .cell-btn.lit {
       background: #facc15;  /* 亮黃色燈 */
       color: #78350f;
-      border-color: #eab308;
+      /* 不改 border-color，保留各自的框色 */
     }
     .cell-btn.selected {
       box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.7);
@@ -196,7 +205,8 @@
 <body>
   <h1>調味石下一步推薦助手（測試版）</h1>
   <p class="tip">
-    系統幫你算「現在這一步最推薦按哪一種」，你回報實際按了哪個、走到哪一格，讓它持續幫你算下一步。
+    系統幫你算「現在這一步最推薦按哪一種」，你回報實際按了哪個、走到哪一格，讓它持續幫你算下一步。<br>
+    本工具會在每個狀態下，優先選擇讓你最有機會最後停在 15 格的按鍵，若一樣再看 10～12 格，最後才看其他結果。（敲爆一律不負責）
   </p>
 
   <!-- 狀態 + 推薦區 -->
@@ -229,9 +239,9 @@
     </div>
 
     <div class="section-title" style="margin-top:10px;">2️⃣ 這一步最後停在哪一格？</div>
-    <div class="label-small">請按照遊戲實際顯示的格子數點選（1～16）。</div>
+    <div class="label-small">請按照遊戲實際顯示的格子數點選（0～16）。</div>
     <div class="cell-select-group" id="cellsContainer">
-      <!-- JS 產生 1~16 格按鍵 -->
+      <!-- JS 產生 0~16 格按鍵 -->
     </div>
 
     <button class="main-submit" id="submitStepBtn">
@@ -304,7 +314,7 @@
 
     // 使用者這一步實際選擇
     let selectedAction = null;  // 'A' | 'B' | 'C'
-    let selectedPos = null;     // 1 ~ 16
+    let selectedPos = null;     // 0 ~ 16
 
     const memo = new Map();
 
@@ -373,6 +383,15 @@
       return a.result.pRare > b.result.pRare;
     }
 
+    function sameResult(r1, r2) {
+      const eps = 1e-9;
+      return (
+        Math.abs(r1.pEpic - r2.pEpic) < eps &&
+        Math.abs(r1.pSSR - r2.pSSR) < eps &&
+        Math.abs(r1.pRare - r2.pRare) < eps
+      );
+    }
+
     // 指定在這個狀態按某一個鍵，考慮隨機，再往後用最佳策略
     function evaluateActionFrom(pos, steps, bLeft, cLeft, action) {
       let deltas = [];
@@ -436,8 +455,12 @@
         if (isBetter(actions[i], best)) best = actions[i];
       }
 
+      const bestActions = actions
+        .filter(a => sameResult(a.result, best.result))
+        .map(a => a.action);
+
       return {
-        bestAction: best.action,
+        bestActions,   // 可能是 ['A'] 或 ['A','B'] 等
         A: aRes.result,
         B: bRes ? bRes.result : null,
         C: cRes ? cRes.result : null
@@ -517,23 +540,40 @@
       }
 
       const advice = getBestActionAndAllProbs(pos, steps, bLeft, cLeft);
+      const bestActions = advice.bestActions || [];
 
-      let bestLabel = "";
-      if (advice.bestAction === "A") {
-        bestLabel = "用力敲打（+3～+6）";
-        document.getElementById("actionA").classList.add("recommended");
-      } else if (advice.bestAction === "B") {
-        bestLabel = "精雕細琢（-3～+2）";
-        document.getElementById("actionB").classList.add("recommended");
-      } else {
-        bestLabel = "使用穩定劑（+0～+4）";
-        document.getElementById("actionC").classList.add("recommended");
+      // 把所有同樣最優的按鈕都標紅框
+      const labels = [];
+      bestActions.forEach(action => {
+        if (action === "A") {
+          labels.push("用力敲打（+3～+6）");
+          document.getElementById("actionA").classList.add("recommended");
+        } else if (action === "B") {
+          labels.push("精雕細琢（-3～+2）");
+          document.getElementById("actionB").classList.add("recommended");
+        } else if (action === "C") {
+          labels.push("使用穩定劑（+0～+4）");
+          document.getElementById("actionC").classList.add("recommended");
+        }
+      });
+
+      // 取其中一個代表的機率（同樣最優，機率會一樣）
+      let bestRes = null;
+      if (bestActions.length > 0) {
+        const refKey = bestActions[0];
+        bestRes = advice[refKey];
       }
 
-      const bestRes = advice[advice.bestAction];
+      if (!bestRes) {
+        recDiv.innerHTML = "無法計算推薦，請檢查狀態。";
+        submitBtn.disabled = true;
+        return;
+      }
+
+      const labelText = labels.join("、");
 
       recDiv.innerHTML =
-        `推薦按：<span class="recommendation-key">${bestLabel}</span><br/>
+        `推薦按：<span class="recommendation-key">${labelText}</span><br/>
          最終預期機率為：` +
         `史詩 ${toPercent(bestRes.pEpic)}、` +
         `超級稀有 ${toPercent(bestRes.pSSR)}、` +
@@ -574,15 +614,27 @@
     }
 
     // ------- 綁定 UI 事件 -------
-    // 建立 1~16 的格子按鈕（亮燈條）
+    // 建立 0~16 的格子按鈕（亮燈條，0~16 數字）
     (function createCells() {
       const container = document.getElementById("cellsContainer");
-      for (let i = 1; i <= 16; i++) {
+      for (let i = 0; i <= 16; i++) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "cell-btn";
         btn.textContent = i;
         btn.dataset.pos = i;
+
+        // 加上對應的框線顏色 class
+        if (i === 0) {
+          btn.classList.add("cell-0");
+        } else if (i === 10 || i === 11 || i === 12) {
+          btn.classList.add("cell-10");
+        } else if (i === 15) {
+          btn.classList.add("cell-15");
+        } else if (i === 16) {
+          btn.classList.add("cell-16");
+        }
+
         btn.addEventListener("click", () => {
           const allCells = document.querySelectorAll(".cell-btn");
           allCells.forEach(b => {
@@ -622,7 +674,7 @@
         return;
       }
       if (selectedPos === null || selectedPos === undefined) {
-        alert("請選擇這一步最後停在哪一格（1～16）。");
+        alert("請選擇這一步最後停在哪一格（0～16）。");
         return;
       }
 
@@ -640,7 +692,7 @@
       );
 
       resetSelections();    // 只清除按鍵選擇
-      selectedPos = null;   // 邏輯上下一步要重新選，但不清除視覺上的亮燈
+      selectedPos = null;   // 下一步要重新選，但格子亮燈視覺保留
       updateStatusAndRecommendation();
     });
 
