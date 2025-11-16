@@ -2,23 +2,24 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>調味石下一步推薦助手</title>
+  <title>調味石推薦助手（實際步驟輸入版）</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 700px;
+      max-width: 900px;
       margin: 40px auto;
       padding: 0 16px;
       line-height: 1.6;
     }
     h1 {
       text-align: center;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
     p.tip {
       text-align: center;
       font-size: 0.9rem;
       color: #555;
+      margin-top: 0;
     }
     .card {
       border: 1px solid #ddd;
@@ -26,48 +27,27 @@
       padding: 16px;
       margin-top: 16px;
     }
-    label {
-      display: block;
-      margin-top: 8px;
-      font-weight: 600;
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
     }
-    input[type="number"] {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-      margin-top: 4px;
-    }
-    button {
-      margin-top: 16px;
-      padding: 10px 16px;
+    .stat-item {
+      padding: 6px 10px;
       border-radius: 6px;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      background: white;
-      font-size: 1rem;
+      background: #f8fafc;
+      font-size: 0.92rem;
     }
-    button:hover {
-      background: #f3f4f6;
-    }
-    .recommendation {
-      margin-top: 12px;
+    .recommendation-box {
       padding: 10px 12px;
       border-radius: 6px;
       background: #eef7ff;
+      margin-top: 8px;
+      font-size: 1rem;
     }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 12px;
-      font-size: 0.9rem;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 6px 8px;
-      text-align: center;
-    }
-    th {
-      background: #f0f0f0;
+    .recommendation-box strong {
+      font-size: 1.05rem;
     }
     .badge {
       display: inline-block;
@@ -80,9 +60,104 @@
     .badge-epic { background: #8b5cf6; }   /* 史詩 */
     .badge-ssr  { background: #f97316; }   /* 超級稀有 */
     .badge-rare { background: #3b82f6; }   /* 稀有 */
-    .note {
-      font-size: 0.85rem;
+
+    .section-title {
+      margin-top: 4px;
+      margin-bottom: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .label-small {
+      font-size: 0.87rem;
       color: #555;
+    }
+
+    .action-select-group, .cell-select-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .action-btn, .cell-btn {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #cbd5f5;
+      background: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .action-btn.selected, .cell-btn.selected {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+
+    .cell-btn {
+      min-width: 34px;
+      text-align: center;
+      padding: 4px 0;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 0.85rem;
+    }
+
+    button.main-submit {
+      margin-top: 12px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: white;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button.main-submit:hover {
+      background: #f3f4f6;
+    }
+    button.main-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button#resetBtn {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 0.88rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    th {
+      background: #f3f4f6;
+    }
+
+    .log {
+      max-height: 220px;
+      overflow-y: auto;
+      font-size: 0.86rem;
+      background: #f9fafb;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+    }
+    .log-line {
+      margin-bottom: 2px;
+    }
+    .note {
+      font-size: 0.82rem;
+      color: #6b7280;
       margin-top: 4px;
     }
   </style>
@@ -90,36 +165,29 @@
 <body>
   <h1>調味石下一步推薦助手</h1>
   <p class="tip">
-    在遊戲裡看到目前狀態 → 在這裡輸入 → 按「計算推薦」 → 看這一步應該按哪個按鈕
+    系統幫你算「現在這一步最推薦按哪一種」，你再回報實際按了哪個、走到哪一格，讓它持續幫你算下一步。
   </p>
 
   <div class="card">
-    <h2>輸入目前遊戲狀態</h2>
+    <h2>目前狀態 & 推薦按鍵</h2>
 
-    <label for="posInput">目前格子數（0～16）：</label>
-    <input id="posInput" type="number" min="0" max="20" value="0" />
+    <div class="stats">
+      <div class="stat-item">目前格子：<span id="pos">0</span></div>
+      <div class="stat-item">已加工次數：<span id="steps">0</span> / 8</div>
+      <div class="stat-item">「精雕細琢」剩餘次數：<span id="bLeft">3</span> / 3</div>
+      <div class="stat-item">「使用穩定劑」剩餘次數：<span id="cLeft">3</span> / 3</div>
+      <div class="stat-item">目前結果評級：<span id="currentTier">尚未結算</span></div>
+    </div>
 
-    <label for="stepsInput">已加工次數（0～8）：</label>
-    <input id="stepsInput" type="number" min="0" max="8" value="0" />
-
-    <label for="bUsedInput">「-3～+2」按鈕（B）已使用次數（0～3）：</label>
-    <input id="bUsedInput" type="number" min="0" max="3" value="0" />
-    <div class="note">例如：如果遊戲顯示 B 還剩 2 次，代表已使用 1 次。</div>
-
-    <label for="cUsedInput">「+0～+4」按鈕（C）已使用次數（0～3）：</label>
-    <input id="cUsedInput" type="number" min="0" max="3" value="0" />
-    <div class="note">例如：如果遊戲顯示 C 還剩 1 次，代表已使用 2 次。</div>
-
-    <button id="calcBtn">計算推薦</button>
-
-    <div class="recommendation" id="recommendation">
-      請先輸入目前狀態，然後按「計算推薦」。
+    <div class="recommendation-box" id="recommendation">
+      計算中…
     </div>
 
     <table>
       <thead>
         <tr>
-          <th>按鈕</th>
+          <th>按鍵</th>
+          <th>說明</th>
           <th>史詩 (15 格)</th>
           <th>超級稀有 (10~12 格)</th>
           <th>其他 / 爆炸 (稀有)</th>
@@ -127,19 +195,22 @@
       </thead>
       <tbody>
         <tr>
-          <td>A：+3~+6（無限）</td>
+          <td>用力敲打</td>
+          <td>+3 ～ +6（無限次）</td>
           <td id="probA_epic">-</td>
           <td id="probA_ssr">-</td>
           <td id="probA_rare">-</td>
         </tr>
         <tr>
-          <td>B：-3~+2（最多 3 次）</td>
+          <td>精雕細琢</td>
+          <td>-3 ～ +2（最多 3 次）</td>
           <td id="probB_epic">-</td>
           <td id="probB_ssr">-</td>
           <td id="probB_rare">-</td>
         </tr>
         <tr>
-          <td>C：+0~+4（最多 3 次）</td>
+          <td>使用穩定劑</td>
+          <td>+0 ～ +4（最多 3 次）</td>
           <td id="probC_epic">-</td>
           <td id="probC_ssr">-</td>
           <td id="probC_rare">-</td>
@@ -149,26 +220,55 @@
   </div>
 
   <div class="card">
-    <h2>結果說明</h2>
-    <p>
-      這個工具會假設：<br/>
-      接下來每一步你都會依照「最佳策略」選按鈕，<br/>
-      幫你算出：**現在這一步如果按 A / B / C，各自最後拿到 史詩 / 超級稀有 / 稀有 的機率**。
-    </p>
-    <p>
-      推薦順序：<br/>
-      1️⃣ 優先最大化「史詩」（15 格）機率<br/>
-      2️⃣ 如果史詩機率相同，再比「超級稀有」（10～12 格）機率<br/>
-      3️⃣ 再來才是一般稀有
-    </p>
+    <h2>回報「實際這一步」的操作</h2>
+
+    <div class="section-title">1️⃣ 你實際按了哪一個按鍵？</div>
+    <div class="label-small">（不是問推薦哪一個，而是你在遊戲裡真的按了哪一個）</div>
+    <div class="action-select-group">
+      <button class="action-btn" data-action="A" id="actionA">用力敲打（+3～+6）</button>
+      <button class="action-btn" data-action="B" id="actionB">精雕細琢（-3～+2）</button>
+      <button class="action-btn" data-action="C" id="actionC">使用穩定劑（+0～+4）</button>
+    </div>
+
+    <div class="section-title" style="margin-top:10px;">2️⃣ 這一步最後停在哪一格？</div>
+    <div class="label-small">包含 0 格起點；請按照遊戲實際顯示的格子數點選。</div>
+    <div class="cell-select-group" id="cellsContainer">
+      <!-- JS 產生 0~16 格按鍵 -->
+    </div>
+
+    <button class="main-submit" id="submitStepBtn">
+      送出這一步結果，幫我計算下一步推薦
+    </button>
+    <div class="note">
+      每送出一次，系統會把「目前格子 + 已加工次數 + 精雕細琢 / 使用穩定劑剩餘次數」都更新，
+      然後重新幫你算下一步最推薦的按鍵。
+    </div>
+
+    <button id="resetBtn">重置整輪（回到 0 格、0 次）</button>
+  </div>
+
+  <div class="card">
+    <h2>操作紀錄</h2>
+    <div class="log" id="log"></div>
   </div>
 
   <script>
+    // ------- 核心狀態 -------
+    let pos = 0;
+    let steps = 0;
+    let bLeft = 3;   // 精雕細琢 剩餘次數
+    let cLeft = 3;   // 使用穩定劑 剩餘次數
     const MAX_STEPS = 8;
     const MAX_B = 3;
     const MAX_C = 3;
+
+    // 使用者這一步實際選擇（輸入）
+    let selectedAction = null;  // 'A' | 'B' | 'C'
+    let selectedPos = null;     // 0 ~ 16
+
     const memo = new Map();
 
+    // ------- 工具函式 -------
     function clampToZero(x) {
       return x < 0 ? 0 : x;
     }
@@ -190,9 +290,8 @@
       }
     }
 
-    // 動態規劃：從某個狀態出發，假設之後都照最佳策略走，最後各稀有度機率
+    // ------- 動態規劃：評估從某個狀態出發（之後都照最佳策略） -------
     function evaluateState(pos, steps, bLeft, cLeft) {
-      // 終止：爆炸或用完 8 次
       if (pos >= 16 || steps >= MAX_STEPS) {
         let pEpic = 0, pSSR = 0, pRare = 0;
         if (pos >= 16) {
@@ -234,15 +333,15 @@
       return a.result.pRare > b.result.pRare;
     }
 
-    // 在當前狀態固定選某個按鈕，考慮點數隨機後，再往後用最佳策略
+    // 指定在這個狀態按某一個鍵，考慮隨機，再往後用最佳策略
     function evaluateActionFrom(pos, steps, bLeft, cLeft, action) {
       let deltas = [];
       if (action === "A") {
-        deltas = [3, 4, 5, 6];              // 4 種等機率
+        deltas = [3, 4, 5, 6];              // 用力敲打
       } else if (action === "B") {
-        deltas = [-3, -2, -1, 0, 1, 2];     // 6 種等機率
+        deltas = [-3, -2, -1, 0, 1, 2];     // 精雕細琢
       } else if (action === "C") {
-        deltas = [0, 1, 2, 3, 4];           // 5 種等機率
+        deltas = [0, 1, 2, 3, 4];           // 使用穩定劑
       }
 
       const prob = 1 / deltas.length;
@@ -305,6 +404,7 @@
       };
     }
 
+    // ------- UI 更新 -------
     function toPercent(x) {
       return (x * 100).toFixed(1) + "%";
     }
@@ -344,64 +444,153 @@
       fillRow("C");
     }
 
-    document.getElementById("calcBtn").addEventListener("click", () => {
-      const pos = Number(document.getElementById("posInput").value);
-      const steps = Number(document.getElementById("stepsInput").value);
-      const bUsed = Number(document.getElementById("bUsedInput").value);
-      const cUsed = Number(document.getElementById("cUsedInput").value);
+    function actionName(action) {
+      if (action === "A") return "用力敲打（+3～+6）";
+      if (action === "B") return "精雕細琢（-3～+2）";
+      if (action === "C") return "使用穩定劑（+0～+4）";
+      return "";
+    }
 
-      // 基本檢查
-      if (isNaN(pos) || isNaN(steps) || isNaN(bUsed) || isNaN(cUsed)) {
-        alert("請確認所有欄位都有輸入數字。");
-        return;
-      }
-      if (pos < 0 || pos > 20) {
-        alert("目前格子數請輸入 0～20 之間。");
-        return;
-      }
-      if (steps < 0 || steps > MAX_STEPS) {
-        alert("已加工次數請輸入 0～8 之間。");
-        return;
-      }
-      if (bUsed < 0 || bUsed > MAX_B || cUsed < 0 || cUsed > MAX_C) {
-        alert("B / C 使用次數請輸入 0～3 之間。");
-        return;
-      }
+    function updateStatusAndRecommendation() {
+      document.getElementById("pos").textContent = pos;
+      document.getElementById("steps").textContent = steps;
+      document.getElementById("bLeft").textContent = bLeft;
+      document.getElementById("cLeft").textContent = cLeft;
 
-      const bLeft = Math.max(0, MAX_B - bUsed);
-      const cLeft = Math.max(0, MAX_C - cUsed);
+      const tier = tierFromPos(pos);
+      document.getElementById("currentTier").innerHTML = formatTierWithBadge(tier);
 
       const recDiv = document.getElementById("recommendation");
+      const submitBtn = document.getElementById("submitStepBtn");
 
-      // 如果遊戲已結束，直接顯示最終結果
       if (pos >= 16 || steps >= MAX_STEPS) {
-        const tier = tierFromPos(pos);
         recDiv.innerHTML =
-          `目前狀態視為遊戲已結束，最終結果：` +
+          `遊戲已視為結束，最終評級：` +
           formatTierWithBadge(tier) +
           `（格子：${pos}，加工次數：${steps}）`;
         updateProbTable(null);
+        submitBtn.disabled = true;
         return;
       }
 
-      // 正常情況：計算建議
       const advice = getBestActionAndAllProbs(pos, steps, bLeft, cLeft);
 
       let bestLabel = "";
-      if (advice.bestAction === "A") bestLabel = "按鈕 A（+3~+6）";
-      else if (advice.bestAction === "B") bestLabel = "按鈕 B（-3~+2）";
-      else bestLabel = "按鈕 C（+0~+4）";
+      if (advice.bestAction === "A") bestLabel = "用力敲打（+3～+6）";
+      else if (advice.bestAction === "B") bestLabel = "精雕細琢（-3～+2）";
+      else bestLabel = "使用穩定劑（+0～+4）";
+
+      const bestRes = advice[advice.bestAction];
 
       recDiv.innerHTML =
-        `建議你這一步在遊戲裡按：<strong>${bestLabel}</strong><br/>
-         接下來如果每一步都照最佳策略按，最後預期結果為：<br/>
-         ‧ 史詩機率：${toPercent(advice[advice.bestAction].pEpic)}<br/>
-         ‧ 超級稀有機率：${toPercent(advice[advice.bestAction].pSSR)}<br/>
-         ‧ 其他 / 爆炸（稀有）：${toPercent(advice[advice.bestAction].pRare)}<br/>
-         <span class="note">下一回合請記得更新格子數、加工次數與 B/C 已使用次數，再按一次「計算推薦」。</span>`;
+        `推薦按：<strong>${bestLabel}</strong><br/>
+         若這一步照推薦按，後續每一步都依最佳策略選擇，<br/>
+         最終預期機率約為：<br/>
+         ‧ 史詩：${toPercent(bestRes.pEpic)}　‧ 超級稀有：${toPercent(bestRes.pSSR)}　‧ 其他 / 爆炸：${toPercent(bestRes.pRare)}`;
 
       updateProbTable(advice);
+      submitBtn.disabled = false;
+    }
+
+    function appendLog(text) {
+      const log = document.getElementById("log");
+      const line = document.createElement("div");
+      line.className = "log-line";
+      line.textContent = text;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function resetSelections() {
+      selectedAction = null;
+      selectedPos = null;
+      document.querySelectorAll(".action-btn").forEach(btn => btn.classList.remove("selected"));
+      document.querySelectorAll(".cell-btn").forEach(btn => btn.classList.remove("selected"));
+    }
+
+    function resetGame() {
+      pos = 0;
+      steps = 0;
+      bLeft = MAX_B;
+      cLeft = MAX_C;
+      resetSelections();
+      document.getElementById("log").innerHTML = "";
+      appendLog("已重置：回到 0 格，0 次加工。");
+      updateStatusAndRecommendation();
+    }
+
+    // ------- 綁定 UI 事件 -------
+    // 建立 0~16 的格子按鈕
+    (function createCells() {
+      const container = document.getElementById("cellsContainer");
+      for (let i = 0; i <= 16; i++) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cell-btn";
+        btn.textContent = i;
+        if (i === 0) {
+          btn.title = "0 格（起點）";
+        }
+        btn.dataset.pos = i;
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".cell-btn").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          selectedPos = i;
+        });
+        container.appendChild(btn);
+      }
+    })();
+
+    // 按鍵選擇（用力敲打 / 精雕細琢 / 使用穩定劑）
+    document.querySelectorAll(".action-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (pos >= 16 || steps >= MAX_STEPS) return;
+        document.querySelectorAll(".action-btn").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedAction = btn.dataset.action;
+      });
     });
+
+    // 送出這一步
+    document.getElementById("submitStepBtn").addEventListener("click", () => {
+      if (pos >= 16 || steps >= MAX_STEPS) {
+        alert("遊戲已結束，請先重置再開始新一輪。");
+        return;
+      }
+      if (!selectedAction) {
+        alert("請先選擇你實際按了哪一個按鍵。");
+        return;
+      }
+      if (selectedPos === null || selectedPos === undefined) {
+        alert("請選擇這一步最後停在哪一格。");
+        return;
+      }
+
+      const beforePos = pos;
+      const beforeSteps = steps;
+      const beforeBLeft = bLeft;
+      const beforeCLeft = cLeft;
+
+      // 更新狀態：直接信任你填的格子數
+      pos = selectedPos;
+      steps = Math.min(MAX_STEPS, steps + 1);
+      if (selectedAction === "B" && bLeft > 0) bLeft--;
+      if (selectedAction === "C" && cLeft > 0) cLeft--;
+
+      appendLog(
+        `第 ${steps} 次：實際按【${actionName(selectedAction)}】，` +
+        `格子：${beforePos} → ${pos}，` +
+        `精雕細琢剩 ${bLeft}/${MAX_B}，使用穩定劑剩 ${cLeft}/${MAX_C}`
+      );
+
+      resetSelections();
+      updateStatusAndRecommendation();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", resetGame);
+
+    // 初始
+    resetGame();
   </script>
 </body>
 </html>
