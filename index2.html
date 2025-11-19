@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>調味石下一步推薦助手（測試版）</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.6;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    p.tip {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #555;
+      margin-top: 0;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .tab-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .tab-btn.active {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .mode {
+      margin-top: 16px;
+    }
+    .hidden {
+      display: none;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .stat-item {
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #f8fafc;
+      font-size: 0.92rem;
+    }
+    .recommendation-box {
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #eef7ff;
+      margin-top: 8px;
+      font-size: 0.98rem;
+    }
+    .recommendation-key {
+      color: #dc2626;
+      font-weight: 700;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      margin-left: 4px;
+      color: white;
+    }
+    .badge-epic { background: #8b5cf6; }
+    .badge-ssr  { background: #f97316; }
+    .badge-rare { background: #3b82f6; }
+
+    .section-title {
+      margin-top: 4px;
+      margin-bottom: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .label-small {
+      font-size: 0.87rem;
+      color: #555;
+    }
+
+    .action-select-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .action-btn {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #cbd5f5;
+      background: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .action-btn:hover {
+      background: #fef3c7;
+      border-color: #fbbf24;
+    }
+    .action-btn.selected {
+      background: #fef3c7;
+      border-color: #fbbf24;
+      color: inherit;
+    }
+    .action-btn.recommended {
+      border: 2px solid #dc2626;
+    }
+    .action-btn.disabled {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+    .action-btn.disabled:hover {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+    }
+
+    .cell-select-group,
+    .cell2-select-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .cell-btn,
+    .cell2-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 3px solid #e5e7eb;
+      background: #fef9c3;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-align: center;
+      line-height: 30px;
+      padding: 0;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    /* 普通調味石顏色 */
+    .cell-blue { border-color: #2563eb; }   /* 1-9,13-14 */
+    .cell-10  { border-color: #9343b1; }   /* 10-12 紫色 */
+    .cell-15  { border-color: #dc2626; }   /* 15 紅 */
+    .cell-16  { border-color: #9ca3af; }   /* 16 灰 */
+
+    /* 最高級調味石顏色：預設紫、13/15 紅、16 灰 */
+    .cell2-btn {
+      border-color: #9343b1;               /* 預設紫色 */
+    }
+    .cell2-red  { border-color: #dc2626; } /* 13,15 */
+    .cell2-gray { border-color: #9ca3af; } /* 16 */
+
+    .cell-btn.lit,
+    .cell2-btn.lit {
+      background: #facc15;
+      color: #78350f;
+    }
+    .cell-btn.selected,
+    .cell2-btn.selected {
+      box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.7);
+    }
+
+    button.main-submit,
+    button.main2-submit {
+      margin-top: 12px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: white;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button.main-submit:hover,
+    button.main2-submit:hover {
+      background: #f3f4f6;
+    }
+    button.main-submit:disabled,
+    button.main2-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button#resetBtn,
+    button#reset2Btn {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 0.88rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    th {
+      background: #f3f4f6;
+    }
+
+    .log,
+    .log2 {
+      max-height: 220px;
+      overflow-y: auto;
+      font-size: 0.86rem;
+      background: #f9fafb;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+    }
+    .log-line {
+      margin-bottom: 2px;
+    }
+    .note {
+      font-size: 0.82rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>調味石下一步推薦助手（測試版）</h1>
+  <p class="tip">
+    系統幫你算「現在這一步最推薦按哪一種」，你回報實際按了哪個、走到哪一格，讓它持續幫你算下一步。<br>
+    本工具會在每個狀態下，優先選擇讓你最有機會最後停在 15 格的按鍵，若一樣再看 10～12 格，最後才看其他結果。（敲爆一律不負責）
+  </p>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabNormal">調味石推薦助手</button>
+    <button class="tab-btn" id="tabHigh">最高級調味石推薦助手</button>
+  </div>
+
+  <!-- 普通調味石模式 -->
+  <div id="normalMode" class="mode">
+    <div class="card">
+      <h2>目前狀態 & 推薦按鍵</h2>
+
+      <div class="stats">
+        <div class="stat-item">目前格子：<span id="pos">0</span></div>
+        <div class="stat-item">已加工次數：<span id="steps">0</span> / 8</div>
+        <div class="stat-item">「精雕細琢」剩餘次數：<span id="bLeft">3</span> / 3</div>
+        <div class="stat-item">「使用穩定劑」剩餘次數：<span id="cLeft">3</span> / 3</div>
+        <div class="stat-item">目前結果評級：<span id="currentTier">尚未結算</span></div>
+      </div>
+
+      <div class="recommendation-box" id="recommendation">
+        計算中…
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>回報「實際這一步」的操作</h2>
+
+      <div class="section-title">1️⃣ 你實際按了哪一個按鍵？</div>
+      <div class="label-small">（不是推薦哪一個，而是你在遊戲裡真的按了哪一個）</div>
+      <div class="action-select-group">
+        <button class="action-btn" data-action="A" id="actionA">用力敲打（+3～+6）</button>
+        <button class="action-btn" data-action="B" id="actionB">精雕細琢（-3～+2）</button>
+        <button class="action-btn" data-action="C" id="actionC">使用穩定劑（+0～+4）</button>
+      </div>
+
+      <div class="section-title" style="margin-top:10px;">2️⃣ 這一步最後停在哪一格？</div>
+      <div class="label-small">請按照遊戲實際顯示的格子數點選（1～16）。</div>
+      <div class="cell-select-group" id="cellsContainer"></div>
+
+      <button class="main-submit" id="submitStepBtn">
+        送出這一步結果，幫我計算下一步推薦
+      </button>
+      <div class="note">
+        每送出一次，系統會把「目前格子 + 已加工次數 + 精雕細琢 / 使用穩定劑剩餘次數」更新，然後重新幫你算下一步最推薦的按鍵。
+      </div>
+
+      <button id="resetBtn">重置整輪（回到 0 格、0 次）</button>
+    </div>
+
+    <div class="card">
+      <h2>操作紀錄</h2>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="card">
+      <h2>各按鍵詳細機率</h2>
+      <p class="note">
+        <span style="color:#dc2626;">
+          注意！我不確定一直使用精雕細琢會不會變回0格，這裡預設不會；另外，在最一開始 0 格時，系統也假設不會停在 0 格或負格，至少會前進到 1 格。如果實際規則不同，再跟我說。
+        </span><br>
+        以下機率是：在目前狀態下「這一步固定按該按鍵」，之後每一步都依最佳策略選擇，最後拿到各種評級的機率。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>按鍵</th>
+            <th>說明</th>
+            <th>史詩 (15 格)</th>
+            <th>超級稀有 (10~12 格)</th>
+            <th>其他 / 爆炸 (稀有)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>用力敲打</td>
+            <td>+3 ～ +6（無限次）</td>
+            <td id="probA_epic">-</td>
+            <td id="probA_ssr">-</td>
+            <td id="probA_rare">-</td>
+          </tr>
+          <tr>
+            <td>精雕細琢</td>
+            <td>-3 ～ +2（最多 3 次）</td>
+            <td id="probB_epic">-</td>
+            <td id="probB_ssr">-</td>
+            <td id="probB_rare">-</td>
+          </tr>
+          <tr>
+            <td>使用穩定劑</td>
+            <td>+0 ～ +4（最多 3 次）</td>
+            <td id="probC_epic">-</td>
+            <td id="probC_ssr">-</td>
+            <td id="probC_rare">-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 最高級調味石模式 -->
+  <div id="highMode" class="mode hidden">
+    <div class="card">
+      <h2>最高級調味石：目前狀態 & 推薦按鍵</h2>
+
+      <div class="stats">
+        <div class="stat-item">目前格子：<span id="pos2">0</span></div>
+        <div class="stat-item">已敲擊次數：<span id="steps2">0</span> / 7</div>
+        <div class="stat-item">「精雕細琢」剩餘次數：<span id="bLeft2">3</span> / 3</div>
+        <div class="stat-item">「使用穩定劑」剩餘次數：<span id="cLeft2">3</span> / 3</div>
+        <div class="stat-item">目前結果評級：<span id="currentTier2">尚未結算</span></div>
+      </div>
+
+      <div class="recommendation-box" id="recommendation2">
+        計算中…
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>回報「實際這一步」的操作</h2>
+
+      <div class="section-title">1️⃣ 你實際按了哪一個按鍵？</div>
+      <div class="label-small">（不是推薦哪一個，而是你在遊戲裡真的按了哪一個）</div>
+      <div class="action-select-group">
+        <button class="action-btn action2-btn" data-action="A" id="action2A">用力敲打（+3～+6）</button>
+        <button class="action-btn action2-btn" data-action="B" id="action2B">精雕細琢（-3～+2）</button>
+        <button class="action-btn action2-btn" data-action="C" id="action2C">使用穩定劑（+0～+4）</button>
+      </div>
+
+      <div class="section-title" style="margin-top:10px;">2️⃣ 這一步最後停在哪一格？</div>
+      <div class="label-small">請按照遊戲實際顯示的格子數點選（1～16）。</div>
+      <div class="cell2-select-group" id="cellsContainer2"></div>
+
+      <button class="main2-submit" id="submitStep2Btn">
+        送出這一步結果，幫我計算下一步推薦
+      </button>
+      <div class="note">
+        整個過程共敲擊 7 次。規則與一般調味石類似，只是 13、15 格為史詩，其餘 1～12、14、16（含爆）皆為超級稀有。
+      </div>
+
+      <button id="reset2Btn">重置整輪（回到 0 格、0 次）</button>
+    </div>
+
+    <div class="card">
+      <h2>最高級調味石操作紀錄</h2>
+      <div class="log2" id="log2"></div>
+    </div>
+
+    <div class="card">
+      <h2>各按鍵詳細機率（最高級調味石）</h2>
+      <p class="note">
+        <span style="color:#dc2626;">
+          注意！最高級調味石也沿用：精雕細琢不會降到 0 格、起始 0 格不會停在 0 或負格的假設；實際規則若不同，請再告訴我。
+        </span><br>
+        在這個模式中，1～12、14、16（含爆炸）皆視為超級稀有，13、15 視為史詩，因此不會出現稀有等級。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>按鍵</th>
+            <th>說明</th>
+            <th>史詩 (13,15 格)</th>
+            <th>超級稀有 (其他格含爆)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>用力敲打</td>
+            <td>+3 ～ +6（無限次）</td>
+            <td id="prob2A_epic">-</td>
+            <td id="prob2A_ssr">-</td>
+          </tr>
+          <tr>
+            <td>精雕細琢</td>
+            <td>-3 ～ +2（最多 3 次）</td>
+            <td id="prob2B_epic">-</td>
+            <td id="prob2B_ssr">-</td>
+          </tr>
+          <tr>
+            <td>使用穩定劑</td>
+            <td>+0 ～ +4（最多 3 次）</td>
+            <td id="prob2C_epic">-</td>
+            <td id="prob2C_ssr">-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    /********** 分頁切換 **********/
+    const tabNormal = document.getElementById("tabNormal");
+    const tabHigh = document.getElementById("tabHigh");
+    const normalMode = document.getElementById("normalMode");
+    const highMode = document.getElementById("highMode");
+
+    tabNormal.addEventListener("click", () => {
+      tabNormal.classList.add("active");
+      tabHigh.classList.remove("active");
+      normalMode.classList.remove("hidden");
+      highMode.classList.add("hidden");
+    });
+    tabHigh.addEventListener("click", () => {
+      tabHigh.classList.add("active");
+      tabNormal.classList.remove("active");
+      highMode.classList.remove("hidden");
+      normalMode.classList.add("hidden");
+    });
+
+    /********** 共用小工具 **********/
+    function toPercent(x) {
+      return (x * 100).toFixed(1) + "%";
+    }
+    function sameResult(r1, r2) {
+      const eps = 1e-9;
+      return (
+        Math.abs(r1.pEpic - r2.pEpic) < eps &&
+        Math.abs(r1.pSSR - r2.pSSR) < eps &&
+        Math.abs(r1.pRare - r2.pRare) < eps
+      );
+    }
+
+    /********** 普通調味石邏輯 **********/
+    let pos = 0;
+    let steps = 0;
+    let bLeft = 3;
+    let cLeft = 3;
+    const MAX_STEPS = 8;
+    const MAX_B = 3;
+    const MAX_C = 3;
+
+    let selectedAction = null;
+    let selectedPos = null;
+
+    const memo = new Map();
+
+    function tierFromPos(p) {
+      if (p >= 16) return "爆炸（稀有）";
+      if (p === 15) return "史詩";
+      if (p >= 10 && p <= 12) return "超級稀有";
+      return "稀有";
+    }
+    function formatTierWithBadge(tier) {
+      if (tier === "史詩") {
+        return tier + ' <span class="badge badge-epic">最佳</span>';
+      } else if (tier === "超級稀有") {
+        return tier + ' <span class="badge badge-ssr">次佳</span>';
+      } else {
+        return tier + ' <span class="badge badge-rare">一般</span>';
+      }
+    }
+
+    function reachablePositions(pos, action) {
+      let deltas = [];
+      if (action === "A") deltas = [3,4,5,6];
+      else if (action === "B") deltas = [-3,-2,-1,0,1,2];
+      else if (action === "C") deltas = [0,1,2,3,4];
+
+      const s = new Set();
+      for (const d of deltas) {
+        let newPos = pos + d;
+        if (pos === 0 && newPos < 1) newPos = 1;
+        if (pos !== 0 && action === "B" && newPos < 1) newPos = 1;
+        if (newPos < 1) newPos = 1;
+        if (newPos >= 16) newPos = 16;
+        s.add(newPos);
+      }
+      return s;
+    }
+
+    function evaluateState(pos, steps, bLeft, cLeft) {
+      if (pos >= 16 || steps >= MAX_STEPS) {
+        let pEpic = 0, pSSR = 0, pRare = 0;
+        if (pos >= 16) pRare = 1;
+        else if (pos === 15) pEpic = 1;
+        else if (pos >= 10 && pos <= 12) pSSR = 1;
+        else pRare = 1;
+        return { pEpic, pSSR, pRare };
+      }
+      const key = pos + "|" + steps + "|" + bLeft + "|" + cLeft;
+      if (memo.has(key)) return memo.get(key);
+
+      const candidates = [];
+      candidates.push(evaluateActionFrom(pos, steps, bLeft, cLeft, "A"));
+      if (bLeft > 0) candidates.push(evaluateActionFrom(pos, steps, bLeft, cLeft, "B"));
+      if (cLeft > 0) candidates.push(evaluateActionFrom(pos, steps, bLeft, cLeft, "C"));
+
+      let best = candidates[0];
+      for (let i=1;i<candidates.length;i++) {
+        if (isBetter(candidates[i], best)) best = candidates[i];
+      }
+      memo.set(key, best.result);
+      return best.result;
+    }
+
+    function isBetter(a, b) {
+      if (a.result.pEpic !== b.result.pEpic) return a.result.pEpic > b.result.pEpic;
+      if (a.result.pSSR !== b.result.pSSR) return a.result.pSSR > b.result.pSSR;
+      return a.result.pRare > b.result.pRare;
+    }
+
+    function evaluateActionFrom(pos, steps, bLeft, cLeft, action) {
+      let deltas = [];
+      if (action === "A") deltas = [3,4,5,6];
+      else if (action === "B") deltas = [-3,-2,-1,0,1,2];
+      else if (action === "C") deltas = [0,1,2,3,4];
+
+      const prob = 1 / deltas.length;
+      let sumEpic = 0, sumSSR = 0, sumRare = 0;
+
+      for (const d of deltas) {
+        let newPos = pos + d;
+        if (pos === 0 && newPos < 1) newPos = 1;
+        if (pos !== 0 && action === "B" && newPos < 1) newPos = 1;
+
+        const newSteps = steps + 1;
+        let nextB = bLeft;
+        let nextC = cLeft;
+        if (action === "B") nextB--;
+        if (action === "C") nextC--;
+
+        const sub = evaluateState(newPos, newSteps, nextB, nextC);
+        sumEpic += sub.pEpic * prob;
+        sumSSR += sub.pSSR * prob;
+        sumRare += sub.pRare * prob;
+      }
+
+      return { action, result: { pEpic: sumEpic, pSSR: sumSSR, pRare: sumRare } };
+    }
+
+    function getBestActionAndAllProbs(pos, steps, bLeft, cLeft) {
+      memo.clear();
+      const actions = [];
+      const aRes = evaluateActionFrom(pos, steps, bLeft, cLeft, "A");
+      actions.push(aRes);
+      let bRes = null, cRes = null;
+      if (bLeft > 0) { bRes = evaluateActionFrom(pos, steps, bLeft, cLeft, "B"); actions.push(bRes); }
+      if (cLeft > 0) { cRes = evaluateActionFrom(pos, steps, bLeft, cLeft, "C"); actions.push(cRes); }
+
+      let best = actions[0];
+      for (let i=1;i<actions.length;i++) if (isBetter(actions[i], best)) best = actions[i];
+
+      const bestActions = actions.filter(a => sameResult(a.result, best.result)).map(a => a.action);
+      return { bestActions, A: aRes.result, B: bRes ? bRes.result : null, C: cRes ? cRes.result : null };
+    }
+
+    function updateProbTable(advice) {
+      const ids = {
+        A: ["probA_epic","probA_ssr","probA_rare"],
+        B: ["probB_epic","probB_ssr","probB_rare"],
+        C: ["probC_epic","probC_ssr","probC_rare"]
+      };
+      if (!advice) {
+        Object.values(ids).forEach(([e,s,r])=>{
+          document.getElementById(e).textContent="-";
+          document.getElementById(s).textContent="-";
+          document.getElementById(r).textContent="-";
+        });
+        return;
+      }
+      function fillRow(key) {
+        const [ep,ss,ra]=ids[key];
+        const res = advice[key];
+        if (!res) {
+          document.getElementById(ep).textContent="不可用";
+          document.getElementById(ss).textContent="-";
+          document.getElementById(ra).textContent="-";
+          return;
+        }
+        document.getElementById(ep).textContent = toPercent(res.pEpic);
+        document.getElementById(ss).textContent = toPercent(res.pSSR);
+        document.getElementById(ra).textContent = toPercent(res.pRare);
+      }
+      fillRow("A"); fillRow("B"); fillRow("C");
+    }
+
+    function actionName(a){
+      if (a==="A") return "用力敲打（+3～+6）";
+      if (a==="B") return "精雕細琢（-3～+2）";
+      if (a==="C") return "使用穩定劑（+0～+4）";
+      return "";
+    }
+
+    function updateActionButtonsEnabled() {
+      const btnB = document.getElementById("actionB");
+      const btnC = document.getElementById("actionC");
+      if (bLeft <= 0) {
+        btnB.classList.add("disabled");
+        if (selectedAction === "B") selectedAction = null;
+      } else btnB.classList.remove("disabled");
+      if (cLeft <= 0) {
+        btnC.classList.add("disabled");
+        if (selectedAction === "C") selectedAction = null;
+      } else btnC.classList.remove("disabled");
+    }
+
+    function updateStatusAndRecommendation() {
+      document.getElementById("pos").textContent = pos;
+      document.getElementById("steps").textContent = steps;
+      document.getElementById("bLeft").textContent = bLeft;
+      document.getElementById("cLeft").textContent = cLeft;
+
+      const tier = tierFromPos(pos);
+      document.getElementById("currentTier").innerHTML = formatTierWithBadge(tier);
+
+      const recDiv = document.getElementById("recommendation");
+      const submitBtn = document.getElementById("submitStepBtn");
+
+      document.querySelectorAll("#normalMode .action-btn").forEach(btn => btn.classList.remove("recommended"));
+
+      if (pos >= 16 || steps >= MAX_STEPS) {
+        recDiv.innerHTML =
+          `遊戲已視為結束，最終評級：` +
+          formatTierWithBadge(tier) +
+          `（格子：${pos}，加工次數：${steps}）`;
+        updateProbTable(null);
+        submitBtn.disabled = true;
+        updateActionButtonsEnabled();
+        return;
+      }
+
+      const advice = getBestActionAndAllProbs(pos, steps, bLeft, cLeft);
+      const bestActions = advice.bestActions || [];
+      const labels = [];
+
+      bestActions.forEach(a=>{
+        if (a==="A"){labels.push("用力敲打（+3～+6）"); document.getElementById("actionA").classList.add("recommended");}
+        else if(a==="B"){labels.push("精雕細琢（-3～+2）"); document.getElementById("actionB").classList.add("recommended");}
+        else if(a==="C"){labels.push("使用穩定劑（+0～+4）"); document.getElementById("actionC").classList.add("recommended");}
+      });
+
+      let bestRes = null;
+      if (bestActions.length>0){
+        const ref = bestActions[0];
+        bestRes = advice[ref];
+      }
+      if (!bestRes) {
+        recDiv.innerHTML="無法計算推薦，請檢查狀態。";
+        submitBtn.disabled=true;
+        updateActionButtonsEnabled();
+        return;
+      }
+
+      recDiv.innerHTML =
+        `推薦按：<span class="recommendation-key">${labels.join("、")}</span><br/>
+         最終預期機率為：` +
+        `史詩 ${toPercent(bestRes.pEpic)}、` +
+        `超級稀有 ${toPercent(bestRes.pSSR)}、` +
+        `其他 / 爆炸 ${toPercent(bestRes.pRare)}`;
+
+      updateProbTable(advice);
+      submitBtn.disabled=false;
+      updateActionButtonsEnabled();
+    }
+
+    function appendLog(text) {
+      const log = document.getElementById("log");
+      const line = document.createElement("div");
+      line.className="log-line";
+      line.textContent=text;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function resetSelections() {
+      selectedAction=null;
+      document.querySelectorAll("#normalMode .action-btn").forEach(b=>b.classList.remove("selected"));
+    }
+
+    function resetGame() {
+      pos = 0; steps = 0;
+      bLeft = MAX_B; cLeft = MAX_C;
+      selectedAction=null; selectedPos=null;
+      document.querySelectorAll("#normalMode .action-btn").forEach(btn=>btn.classList.remove("selected","recommended","disabled"));
+      document.querySelectorAll(".cell-btn").forEach(btn=>btn.classList.remove("selected","lit"));
+      document.getElementById("log").innerHTML="";
+      appendLog("已重置：回到 0 格，0 次加工。");
+      updateStatusAndRecommendation();
+    }
+
+    // 建立普通格子
+    (function createCells() {
+      const container = document.getElementById("cellsContainer");
+      for (let i=1;i<=16;i++){
+        const btn=document.createElement("button");
+        btn.type="button";
+        btn.className="cell-btn";
+        btn.textContent=i;
+        btn.dataset.pos=i;
+
+        if ((i>=1 && i<=9) || i===13 || i===14) btn.classList.add("cell-blue");
+        else if (i===10 || i===11 || i===12) btn.classList.add("cell-10");
+        else if (i===15) btn.classList.add("cell-15");
+        else if (i===16) btn.classList.add("cell-16");
+
+        btn.addEventListener("click",()=>{
+          const all=document.querySelectorAll(".cell-btn");
+          all.forEach(b=>{
+            const p=Number(b.dataset.pos);
+            b.classList.remove("selected","lit");
+            if (p<=i) b.classList.add("lit");
+            if (p===i) b.classList.add("selected");
+          });
+          selectedPos=i;
+        });
+        container.appendChild(btn);
+      }
+    })();
+
+    document.querySelectorAll("#normalMode .action-btn").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        if (pos>=16 || steps>=MAX_STEPS) return;
+        if (btn.classList.contains("disabled")) return;
+        document.querySelectorAll("#normalMode .action-btn").forEach(b=>b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedAction=btn.dataset.action;
+      });
+    });
+
+    document.getElementById("submitStepBtn").addEventListener("click",()=>{
+      if (pos>=16 || steps>=MAX_STEPS){
+        alert("遊戲已結束，請先重置再開始新一輪。");
+        return;
+      }
+      if (!selectedAction){
+        alert("請先選擇你實際按了哪一個按鍵。");
+        return;
+      }
+      if (selectedPos==null){
+        alert("請選擇這一步最後停在哪一格（1～16）。");
+        return;
+      }
+      const beforePos = pos;
+      const reachable = reachablePositions(beforePos, selectedAction);
+      if (!reachable.has(selectedPos)){
+        alert(`防呆提醒：從第 ${beforePos} 格按「${actionName(selectedAction)}」不可能走到第 ${selectedPos} 格，請再確認按鍵與格子。`);
+        return;
+      }
+      pos = selectedPos;
+      steps = Math.min(MAX_STEPS, steps+1);
+      if (selectedAction==="B" && bLeft>0) bLeft--;
+      if (selectedAction==="C" && cLeft>0) cLeft--;
+
+      appendLog(`第 ${steps} 次：實際按【${actionName(selectedAction)}】，格子：${beforePos} → ${pos}，精雕細琢剩 ${bLeft}/${MAX_B}，使用穩定劑剩 ${cLeft}/${MAX_C}`);
+
+      resetSelections();
+      selectedPos=null;
+      updateStatusAndRecommendation();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click",resetGame);
+
+    /********** 最高級調味石邏輯 **********/
+    let pos2 = 0;
+    let steps2 = 0;
+    let bLeft2 = 3;
+    let cLeft2 = 3;
+    const MAX_STEPS2 = 7;
+
+    let selectedAction2 = null;
+    let selectedPos2 = null;
+
+    const memo2 = new Map();
+
+    function tierFromPos2(p){
+      if (p===13 || p===15) return "史詩";
+      if (p>=1) return "超級稀有";
+      return "尚未結算";
+    }
+    function formatTierWithBadge2(tier){
+      if (tier==="史詩") return tier + ' <span class="badge badge-epic">最佳</span>';
+      if (tier==="超級稀有") return tier + ' <span class="badge badge-ssr">超級稀有</span>';
+      return tier;
+    }
+
+    function reachablePositions2(pos, action){
+      let deltas=[];
+      if (action==="A") deltas=[3,4,5,6];
+      else if(action==="B") deltas=[-3,-2,-1,0,1,2];
+      else if(action==="C") deltas=[0,1,2,3,4];
+      const s=new Set();
+      for(const d of deltas){
+        let newPos=pos+d;
+        if (pos===0 && newPos<1) newPos=1;
+        if (pos!==0 && action==="B" && newPos<1) newPos=1;
+        if (newPos<1) newPos=1;
+        if (newPos>=16) newPos=16;
+        s.add(newPos);
+      }
+      return s;
+    }
+
+    function evaluateState2(pos, steps, bLeft, cLeft){
+      if (pos>=16 || steps>=MAX_STEPS2){
+        let pEpic=0,pSSR=0,pRare=0;
+        if (pos===13 || pos===15) pEpic=1;
+        else if (pos>=1) pSSR=1; // 1-12,14,16
+        return {pEpic,pSSR,pRare};
+      }
+      const key = pos+"|"+steps+"|"+bLeft+"|"+cLeft;
+      if (memo2.has(key)) return memo2.get(key);
+
+      const cands=[];
+      cands.push(evaluateActionFrom2(pos,steps,bLeft,cLeft,"A"));
+      if (bLeft>0) cands.push(evaluateActionFrom2(pos,steps,bLeft,cLeft,"B"));
+      if (cLeft>0) cands.push(evaluateActionFrom2(pos,steps,bLeft,cLeft,"C"));
+
+      let best=cands[0];
+      for(let i=1;i<cands.length;i++){
+        if (isBetter(cands[i],best)) best=cands[i];
+      }
+      memo2.set(key,best.result);
+      return best.result;
+    }
+
+    function evaluateActionFrom2(pos, steps, bLeft, cLeft, action){
+      let deltas=[];
+      if (action==="A") deltas=[3,4,5,6];
+      else if(action==="B") deltas=[-3,-2,-1,0,1,2];
+      else if(action==="C") deltas=[0,1,2,3,4];
+
+      const prob=1/deltas.length;
+      let sumEpic=0,sumSSR=0,sumRare=0;
+      for(const d of deltas){
+        let newPos=pos+d;
+        if (pos===0 && newPos<1) newPos=1;
+        if (pos!==0 && action==="B" && newPos<1) newPos=1;
+
+        const newSteps=steps+1;
+        let nb=bLeft,nc=cLeft;
+        if (action==="B") nb--;
+        if (action==="C") nc--;
+
+        const sub=evaluateState2(newPos,newSteps,nb,nc);
+        sumEpic+=sub.pEpic*prob;
+        sumSSR+=sub.pSSR*prob;
+        sumRare+=sub.pRare*prob;
+      }
+      return {action, result:{pEpic:sumEpic,pSSR:sumSSR,pRare:sumRare}};
+    }
+
+    function getBestActionAndAllProbs2(pos, steps, bLeft, cLeft){
+      memo2.clear();
+      const actions=[];
+      const aRes=evaluateActionFrom2(pos,steps,bLeft,cLeft,"A");
+      actions.push(aRes);
+      let bRes=null,cRes=null;
+      if (bLeft>0){bRes=evaluateActionFrom2(pos,steps,bLeft,cLeft,"B");actions.push(bRes);}
+      if (cLeft>0){cRes=evaluateActionFrom2(pos,steps,bLeft,cLeft,"C");actions.push(cRes);}
+
+      let best=actions[0];
+      for(let i=1;i<actions.length;i++) if (isBetter(actions[i],best)) best=actions[i];
+
+      const bestActions = actions.filter(a=>sameResult(a.result,best.result)).map(a=>a.action);
+      return {bestActions, A:aRes.result, B:bRes?bRes.result:null, C:cRes?cRes.result:null};
+    }
+
+    function updateProbTable2(advice){
+      const ids={
+        A:["prob2A_epic","prob2A_ssr"],
+        B:["prob2B_epic","prob2B_ssr"],
+        C:["prob2C_epic","prob2C_ssr"]
+      };
+      if(!advice){
+        Object.values(ids).forEach(([e,s])=>{
+          document.getElementById(e).textContent="-";
+          document.getElementById(s).textContent="-";
+        });
+        return;
+      }
+      function fillRow(key){
+        const [ep,ss]=ids[key];
+        const res=advice[key];
+        if(!res){
+          document.getElementById(ep).textContent="不可用";
+          document.getElementById(ss).textContent="-";
+          return;
+        }
+        document.getElementById(ep).textContent=toPercent(res.pEpic);
+        document.getElementById(ss).textContent=toPercent(res.pSSR);
+      }
+      fillRow("A");fillRow("B");fillRow("C");
+    }
+
+    function updateActionButtonsEnabled2(){
+      const btnB=document.getElementById("action2B");
+      const btnC=document.getElementById("action2C");
+      if (bLeft2<=0){btnB.classList.add("disabled"); if(selectedAction2==="B")selectedAction2=null;}
+      else btnB.classList.remove("disabled");
+      if (cLeft2<=0){btnC.classList.add("disabled"); if(selectedAction2==="C")selectedAction2=null;}
+      else btnC.classList.remove("disabled");
+    }
+
+    function updateStatusAndRecommendation2(){
+      document.getElementById("pos2").textContent=pos2;
+      document.getElementById("steps2").textContent=steps2;
+      document.getElementById("bLeft2").textContent=bLeft2;
+      document.getElementById("cLeft2").textContent=cLeft2;
+
+      const tier=tierFromPos2(pos2);
+      document.getElementById("currentTier2").innerHTML=formatTierWithBadge2(tier);
+
+      const recDiv=document.getElementById("recommendation2");
+      const submitBtn=document.getElementById("submitStep2Btn");
+
+      document.querySelectorAll("#highMode .action2-btn").forEach(btn=>btn.classList.remove("recommended"));
+
+      if (pos2>=16 || steps2>=MAX_STEPS2){
+        recDiv.innerHTML =
+          `遊戲已視為結束，最終評級：` +
+          formatTierWithBadge2(tier) +
+          `（格子：${pos2}，敲擊次數：${steps2}）`;
+        updateProbTable2(null);
+        submitBtn.disabled=true;
+        updateActionButtonsEnabled2();
+        return;
+      }
+
+      const advice=getBestActionAndAllProbs2(pos2,steps2,bLeft2,cLeft2);
+      const bestActions=advice.bestActions || [];
+      const labels=[];
+      bestActions.forEach(a=>{
+        if(a==="A"){labels.push("用力敲打（+3～+6）");document.getElementById("action2A").classList.add("recommended");}
+        else if(a==="B"){labels.push("精雕細琢（-3～+2）");document.getElementById("action2B").classList.add("recommended");}
+        else if(a==="C"){labels.push("使用穩定劑（+0～+4）");document.getElementById("action2C").classList.add("recommended");}
+      });
+
+      let bestRes=null;
+      if(bestActions.length>0){
+        const ref=bestActions[0];
+        bestRes=advice[ref];
+      }
+      if(!bestRes){
+        recDiv.innerHTML="無法計算推薦，請檢查狀態。";
+        submitBtn.disabled=true;
+        updateActionButtonsEnabled2();
+        return;
+      }
+
+      recDiv.innerHTML =
+        `推薦按：<span class="recommendation-key">${labels.join("、")}</span><br/>
+         最終預期機率為：` +
+        `史詩 ${toPercent(bestRes.pEpic)}、` +
+        `超級稀有 ${toPercent(bestRes.pSSR)}`;
+
+      updateProbTable2(advice);
+      submitBtn.disabled=false;
+      updateActionButtonsEnabled2();
+    }
+
+    function appendLog2(text){
+      const log=document.getElementById("log2");
+      const line=document.createElement("div");
+      line.className="log-line";
+      line.textContent=text;
+      log.appendChild(line);
+      log.scrollTop=log.scrollHeight;
+    }
+
+    function resetSelections2(){
+      selectedAction2=null;
+      document.querySelectorAll("#highMode .action2-btn").forEach(b=>b.classList.remove("selected"));
+    }
+
+    function resetGame2(){
+      pos2=0;steps2=0;bLeft2=3;cLeft2=3;
+      selectedAction2=null;selectedPos2=null;
+      document.querySelectorAll("#highMode .action2-btn").forEach(btn=>btn.classList.remove("selected","recommended","disabled"));
+      document.querySelectorAll(".cell2-btn").forEach(btn=>btn.classList.remove("selected","lit"));
+      document.getElementById("log2").innerHTML="";
+      appendLog2("已重置：回到 0 格，0 次敲擊。");
+      updateStatusAndRecommendation2();
+    }
+
+    // 建立最高級格子
+    (function createCells2(){
+      const container=document.getElementById("cellsContainer2");
+      for(let i=1;i<=16;i++){
+        const btn=document.createElement("button");
+        btn.type="button";
+        btn.className="cell2-btn";
+        btn.textContent=i;
+        btn.dataset.pos=i;
+
+        if (i===13 || i===15) btn.classList.add("cell2-red");
+        else if (i===16) btn.classList.add("cell2-gray");
+
+        btn.addEventListener("click",()=>{
+          const all=document.querySelectorAll(".cell2-btn");
+          all.forEach(b=>{
+            const p=Number(b.dataset.pos);
+            b.classList.remove("selected","lit");
+            if (p<=i) b.classList.add("lit");
+            if (p===i) b.classList.add("selected");
+          });
+          selectedPos2=i;
+        });
+        container.appendChild(btn);
+      }
+    })();
+
+    document.querySelectorAll("#highMode .action2-btn").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        if (pos2>=16 || steps2>=MAX_STEPS2) return;
+        if (btn.classList.contains("disabled")) return;
+        document.querySelectorAll("#highMode .action2-btn").forEach(b=>b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedAction2=btn.dataset.action;
+      });
+    });
+
+    document.getElementById("submitStep2Btn").addEventListener("click",()=>{
+      if (pos2>=16 || steps2>=MAX_STEPS2){
+        alert("遊戲已結束，請先重置再開始新一輪。");
+        return;
+      }
+      if (!selectedAction2){
+        alert("請先選擇你實際按了哪一個按鍵。");
+        return;
+      }
+      if (selectedPos2==null){
+        alert("請選擇這一步最後停在哪一格（1～16）。");
+        return;
+      }
+      const beforePos=pos2;
+      const reachable=reachablePositions2(beforePos,selectedAction2);
+      if (!reachable.has(selectedPos2)){
+        alert(`防呆提醒：從第 ${beforePos} 格按「${actionName(selectedAction2)}」不可能走到第 ${selectedPos2} 格，請再確認按鍵與格子。`);
+        return;
+      }
+      pos2=selectedPos2;
+      steps2=Math.min(MAX_STEPS2,steps2+1);
+      if (selectedAction2==="B" && bLeft2>0) bLeft2--;
+      if (selectedAction2==="C" && cLeft2>0) cLeft2--;
+
+      appendLog2(`第 ${steps2} 次：實際按【${actionName(selectedAction2)}】，格子：${beforePos} → ${pos2}，精雕細琢剩 ${bLeft2}/3，使用穩定劑剩 ${cLeft2}/3`);
+
+      resetSelections2();
+      selectedPos2=null;
+      updateStatusAndRecommendation2();
+    });
+
+    document.getElementById("reset2Btn").addEventListener("click",resetGame2);
+
+    // 初始化
+    resetGame();
+    resetGame2();
+  </script>
+</body>
+</html>
